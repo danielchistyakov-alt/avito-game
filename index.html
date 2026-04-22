@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Поймай клиента — Авито Реклама</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;900&display=swap');
+
+:root {
+  --blue: #00AAFF;
+  --green: #00D46A;
+  --red: #FF3B30;
+  --bg: #0A0E1A;
+  --s2: #1C2537;
+  --text: #F0F4FF;
+  --muted: #6B7A99;
+  --border: rgba(255,255,255,0.08);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Golos Text', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+.screen {
+  display: none;
+  width: 100%;
+  max-width: 460px;
+  padding: 20px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+.screen.active { display: flex; }
+
+.badge {
+  background: linear-gradient(135deg, var(--blue), #0055FF);
+  border-radius: 20px;
+  padding: 9px 18px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: clamp(26px, 7vw, 38px);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+h1 span { color: var(--blue); }
+
+.sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+.niche-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--muted); align-self: flex-start;
+}
+
+.niche-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.niche-btn {
+  background: var(--s2);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  font-family: inherit; color: var(--text);
+}
+.niche-btn:hover { border-color: var(--blue); background: rgba(0,170,255,0.08); }
+.niche-btn.selected { border-color: var(--blue); background: rgba(0,170,255,0.15); }
+.niche-btn .icon { font-size: 22px; }
+.niche-btn .lbl { font-size: 10px; font-weight: 600; }
+
+.howto {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px; width: 100%;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.howto-row { display: flex; align-items: center; gap: 10px; text-align: left; }
+.howto-row .ico { font-size: 18px; flex-shrink: 0; }
+.howto-row .txt { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.howto-row .txt strong { color: var(--text); }
+
+.btn {
+  background: linear-gradient(135deg, var(--blue), #0055FF);
+  color: white; border: none; border-radius: 12px;
+  padding: 15px; font-family: inherit; font-size: 14px; font-weight: 700;
+  cursor: pointer; width: 100%; transition: opacity 0.15s, transform 0.1s;
+}
+.btn:hover { opacity: 0.9; }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn.outline {
+  background: transparent;
+  border: 1.5px solid var(--blue);
+  color: var(--blue);
+}
+
+/* GAME */
+#gameScreen {
+  padding: 0; max-width: 100%;
+  position: fixed; inset: 0; cursor: none;
+}
+#canvas { width: 100%; height: 100%; display: block; }
+
+.hud {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+  display: flex; justify-content: space-around; align-items: center;
+  padding: 10px 20px;
+  background: rgba(10,14,26,0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.hud-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.hud-val { font-size: 22px; font-weight: 900; line-height: 1; }
+.hud-val.g { color: var(--green); }
+.hud-val.r { color: var(--red); }
+.hud-val.b { color: var(--blue); }
+.hud-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+.timer-bar {
+  position: fixed; bottom: 0; left: 0;
+  height: 4px; background: var(--blue);
+  transition: width 1s linear; z-index: 10;
+}
+
+/* COUNTDOWN */
+.countdown {
+  position: fixed; inset: 0;
+  background: rgba(10,14,26,0.95); z-index: 50;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+}
+.cd-num {
+  font-size: 100px; font-weight: 900; color: var(--blue);
+  animation: pop 0.9s ease-out;
+}
+@keyframes pop {
+  0%   { transform: scale(1.8); opacity: 0; }
+  30%  { opacity: 1; transform: scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0.2; }
+}
+.cd-sub { font-size: 16px; color: var(--muted); font-weight: 600; }
+
+/* FX */
+.fx {
+  position: fixed; pointer-events: none; z-index: 20;
+  animation: fxUp 0.7s forwards;
+  font-weight: 900; font-size: 20px;
+}
+@keyframes fxUp {
+  0%   { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-55px); }
+}
+.flash {
+  position: fixed; inset: 0; pointer-events: none; z-index: 15;
+  animation: flashOut 0.35s forwards;
+}
+@keyframes flashOut { from { opacity: 1; } to { opacity: 0; } }
+.combo-pop {
+  position: fixed; top: 70px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--green); color: #0A0E1A;
+  font-weight: 900; font-size: 15px;
+  padding: 7px 18px; border-radius: 100px;
+  z-index: 25; pointer-events: none; white-space: nowrap;
+  animation: comboPop 0.9s forwards;
+}
+@keyframes comboPop {
+  0%   { opacity: 0; transform: translateX(-50%) scale(0.7); }
+  20%  { opacity: 1; transform: translateX(-50%) scale(1.05); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+}
+
+/* RESULT */
+.result-emoji { font-size: 56px; line-height: 1; }
+.result-title { font-size: clamp(18px,5vw,26px); font-weight: 900; letter-spacing: -0.02em; }
+
+.score-row {
+  display: flex; justify-content: space-around;
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 16px; width: 100%;
+}
+.score-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.score-num { font-size: 28px; font-weight: 900; }
+.score-lbl { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; }
+
+/* BENCHMARK */
+.bench-box {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px; width: 100%;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.bench-title { font-size: 13px; font-weight: 700; text-align: left; }
+.bench-grid {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+}
+.bench-item {
+  background: rgba(255,255,255,0.04); border-radius: 10px;
+  padding: 10px 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.bench-val { font-size: 17px; font-weight: 900; color: var(--blue); }
+.bench-lbl { font-size: 9px; color: var(--muted); text-align: center; line-height: 1.3; font-weight: 600; }
+.bench-note { font-size: 11px; color: var(--muted); line-height: 1.5; font-style: italic; text-align: left; }
+
+/* INSIGHT */
+.insight {
+  background: linear-gradient(135deg, rgba(0,170,255,0.1), rgba(0,85,255,0.06));
+  border: 1px solid rgba(0,170,255,0.2);
+  border-radius: 12px; padding: 14px; width: 100%; text-align: left;
+}
+.insight-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--blue); margin-bottom: 6px; }
+.insight-text { font-size: 12px; line-height: 1.6; color: var(--text); }
+
+/* PROMO */
+.promo-box {
+  background: linear-gradient(135deg, rgba(0,212,106,0.12), rgba(0,170,255,0.08));
+  border: 1.5px solid rgba(0,212,106,0.35);
+  border-radius: 14px; padding: 16px; width: 100%;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.promo-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--green); }
+.promo-desc { font-size: 14px; color: var(--text); line-height: 1.4; }
+.promo-desc strong { color: var(--green); font-size: 17px; }
+.promo-code-row { display: flex; gap: 8px; align-items: center; }
+.promo-code {
+  flex: 1; background: rgba(255,255,255,0.06);
+  border: 1.5px dashed rgba(0,212,106,0.5); border-radius: 10px;
+  padding: 10px 12px; font-size: 13px; font-weight: 900;
+  letter-spacing: 0.05em; color: var(--green); font-family: monospace;
+  text-align: left;
+}
+.copy-btn {
+  background: var(--green); color: #0A0E1A;
+  border: none; border-radius: 10px; padding: 10px 12px;
+  font-family: inherit; font-size: 11px; font-weight: 700;
+  cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
+}
+.copy-btn:hover { opacity: 0.85; }
+.copy-btn.copied { background: var(--blue); color: white; }
+.promo-fine { font-size: 10px; color: var(--muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- START -->
+<div class="screen active" id="startScreen">
+  <div class="badge">Авито Реклама · День предпринимателя</div>
+  <h1>Поймай<br><span>своего</span><br>клиента</h1>
+  <p class="sub">30 секунд. Двигай воронку — лови целевых, уходи от случайных.</p>
+
+  <div class="niche-label">Твоя ниша</div>
+  <div class="niche-grid">
+    <button class="niche-btn" data-niche="auto"     onclick="pick(this)"><span class="icon">🚗</span><span class="lbl">Авто</span></button>
+    <button class="niche-btn" data-niche="realty"   onclick="pick(this)"><span class="icon">🏠</span><span class="lbl">Недвижимость</span></button>
+    <button class="niche-btn" data-niche="build"    onclick="pick(this)"><span class="icon">🔨</span><span class="lbl">Стройка</span></button>
+    <button class="niche-btn" data-niche="clothes"  onclick="pick(this)"><span class="icon">👗</span><span class="lbl">Одежда</span></button>
+    <button class="niche-btn" data-niche="med"      onclick="pick(this)"><span class="icon">🏥</span><span class="lbl">Медицина</span></button>
+    <button class="niche-btn" data-niche="services" onclick="pick(this)"><span class="icon">🎯</span><span class="lbl">Услуги</span></button>
+  </div>
+
+  <div class="howto">
+    <div class="howto-row"><span class="ico">🖱️</span><span class="txt"><strong>Двигай мышью</strong> — воронка следует за курсором</span></div>
+    <div class="howto-row"><span class="ico">🟢</span><span class="txt"><strong>Зелёный ореол — твой клиент.</strong> Поймай воронкой</span></div>
+    <div class="howto-row"><span class="ico">🔴</span><span class="txt"><strong>Красный ореол — чужой.</strong> Пропусти, иначе -1 очко</span></div>
+    <div class="howto-row"><span class="ico">🔥</span><span class="txt"><strong>3 подряд</strong> = двойные очки</span></div>
+  </div>
+
+  <button class="btn" id="startBtn" onclick="doCountdown()" disabled>Начать →</button>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="gameScreen">
+  <div class="hud">
+    <div class="hud-item"><div class="hud-val g" id="hScore">0</div><div class="hud-lbl">Очки</div></div>
+    <div class="hud-item"><div class="hud-val b" id="hTime">30</div><div class="hud-lbl">Сек</div></div>
+    <div class="hud-item"><div class="hud-val r" id="hMiss">0</div><div class="hud-lbl">Пропущено</div></div>
+  </div>
+  <canvas id="canvas"></canvas>
+  <div class="timer-bar" id="timerBar"></div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="resultScreen">
+  <div class="result-emoji" id="rEmoji">🏆</div>
+  <div class="result-title" id="rTitle">Отличный результат!</div>
+
+  <div class="score-row">
+    <div class="score-item"><div class="score-num" style="color:var(--green)" id="rCaught">0</div><div class="score-lbl">Поймано</div></div>
+    <div class="score-item"><div class="score-num" style="color:var(--blue)"  id="rScore">0</div><div class="score-lbl">Очков</div></div>
+    <div class="score-item"><div class="score-num" style="color:var(--red)"   id="rMissed">0</div><div class="score-lbl">Упущено</div></div>
+  </div>
+
+  <div class="bench-box">
+    <div class="bench-title" id="bTitle">📊 Ваша ниша</div>
+    <div class="bench-grid">
+      <div class="bench-item"><div class="bench-val" id="bComp">—</div><div class="bench-lbl">конкурентов рекламируются</div></div>
+      <div class="bench-item"><div class="bench-val" id="bCPL">—</div><div class="bench-lbl">средний CPL в нише</div></div>
+      <div class="bench-item"><div class="bench-val" id="bBudget">—</div><div class="bench-lbl">мин. бюджет для теста</div></div>
+    </div>
+    <div class="bench-note" id="bNote"></div>
+  </div>
+
+  <div class="insight">
+    <div class="insight-tag">💡 Инсайт</div>
+    <div class="insight-text" id="rInsight"></div>
+  </div>
+
+  <div class="promo-box">
+    <div class="promo-label">🎁 Подарок ко Дню предпринимателя</div>
+    <div class="promo-desc">Бонус <strong>3 000 ₽</strong> на первую рекламную кампанию</div>
+    <div class="promo-code-row">
+      <div class="promo-code">ПРЕДПРИНИМАТЕЛЬ26</div>
+      <button class="copy-btn" id="copyBtn" onclick="copyPromo()">Скопировать</button>
+    </div>
+    <div class="promo-fine">До 26 мая · Только новые рекламодатели · Мин. пополнение 15 000 ₽</div>
+  </div>
+
+  <button class="btn" onclick="alert('ads.avito.ru — UTM-ссылка')">Запустить первую РК →</button>
+  <button class="btn outline" onclick="doRestart()">Сыграть ещё раз</button>
+</div>
+
+<!-- COUNTDOWN -->
+<div class="countdown" id="cdOverlay" style="display:none">
+  <div class="cd-num" id="cdNum">3</div>
+  <div class="cd-sub" id="cdSub">Приготовьтесь!</div>
+</div>
+
+<script>
+/* ====== DATA ====== */
+var NICHES = {
+  auto:     { label: "Авто",          icon: "🚗", targets: ["🚗","🔧","🛞","🚙","🔑"], junk: ["👗","🏠","💊","🎮","🍕","📱","🎨"] },
+  realty:   { label: "Недвижимость",  icon: "🏠", targets: ["🏠","🏡","🏢","🔑","📋"], junk: ["🚗","👗","💊","🎮","🍕","📱","🎨"] },
+  build:    { label: "Строительство", icon: "🔨", targets: ["🔨","🪚","🧱","⚙️","🪛"], junk: ["🚗","👗","💊","🎮","🍕","📱","🎨"] },
+  clothes:  { label: "Одежда",        icon: "👗", targets: ["👗","👠","🧥","👔","👜"], junk: ["🚗","🏠","💊","🎮","🍕","🔨","🎨"] },
+  med:      { label: "Медицина",      icon: "🏥", targets: ["💊","🏥","🩺","💉","🩹"], junk: ["🚗","👗","🎮","🍕","📱","🔨","🎨"] },
+  services: { label: "Услуги",        icon: "🎯", targets: ["✂️","🎨","🧹","📸","🍽️"], junk: ["🚗","🏠","💊","🎮","📱","🔨","👗"] }
+};
+
+/* ⚠️ Заменить на реальные данные из аналитики перед боевым запуском */
+var BENCHMARKS = {
+  auto:     { comp: "312",  cpl: "1 200 ₽",  budget: "15 000 ₽", note: "Авто — топ-3 ниши по выручке. CPL предсказуем при бюджете от 15 тыс." },
+  realty:   { comp: "486",  cpl: "2 400 ₽",  budget: "20 000 ₽", note: "Недвижимость — самый высокий средний чек (33 000 ₽). Долгий цикл принятия решений." },
+  build:    { comp: "621",  cpl: "900 ₽",    budget: "12 000 ₽", note: "Строительство — крупнейшая ниша. Широкий спрос, относительно низкий CPL." },
+  clothes:  { comp: "101",  cpl: "650 ₽",    budget: "15 000 ₽", note: "Одежда — высокий средний чек (34 000 ₽). Перспективная ниша с низкой конкуренцией." },
+  med:      { comp: "83",   cpl: "1 100 ₽",  budget: "15 000 ₽", note: "Медицина — стабильный спрос, хороший профиль активности. Ниша с потенциалом роста." },
+  services: { comp: "1427", cpl: "750 ₽",    budget: "10 000 ₽", note: "Услуги — самая большая ниша. CPL варьируется в зависимости от подкатегории." }
+};
+
+var INSIGHTS = {
+  high:   "В игре вы интуитивно отсекали лишних. В реальной рекламе это делает алгоритм Авито Рекламы — показывает объявления только тем, кто уже ищет ваш товар. Без лишних трат.",
+  medium: "Часть нецелевых прошла — в реальной рекламе каждый такой клик стоит денег. Авито Реклама фильтрует аудиторию по поведению: смотрел похожие объявления, искал в вашей категории.",
+  low:    "Нецелевой трафик — главная утечка бюджета. Авито Реклама использует данные 50+ млн пользователей, чтобы ваше объявление видели только потенциальные покупатели."
+};
+
+/* ====== STATE ====== */
+var niche = null;
+var score = 0, caught = 0, missed = 0, combo = 0;
+var timeLeft = 30;
+var running = false;
+var rafId = null, timerId = null, spawnId = null;
+var clients = [];
+var cx = 0, cy = 0;
+var CATCH_R = 60;
+
+/* ====== NICHE ====== */
+function pick(btn) {
+  var btns = document.querySelectorAll(".niche-btn");
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove("selected");
+  btn.classList.add("selected");
+  niche = btn.getAttribute("data-niche");
+  document.getElementById("startBtn").disabled = false;
+}
+
+/* ====== COUNTDOWN ====== */
+function doCountdown() {
+  document.getElementById("startScreen").classList.remove("active");
+  var ov = document.getElementById("cdOverlay");
+  ov.style.display = "flex";
+  var n = 3;
+  var subs = ["Приготовьтесь!", "Лови целевых!", "Избегай чужих!"];
+  function tick() {
+    var el = document.getElementById("cdNum");
+    el.textContent = n;
+    el.style.animation = "none";
+    el.offsetHeight;
+    el.style.animation = "pop 0.9s ease-out";
+    document.getElementById("cdSub").textContent = subs[3 - n] || "";
+    n--;
+    if (n < 0) { ov.style.display = "none"; startGame(); }
+    else setTimeout(tick, 1000);
+  }
+  tick();
+}
+
+/* ====== GAME START ====== */
+function startGame() {
+  var gs = document.getElementById("gameScreen");
+  gs.classList.add("active");
+  gs.style.display = "flex";
+
+  var canvas = document.getElementById("canvas");
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  score = caught = missed = combo = 0;
+  timeLeft = 30;
+  clients = [];
+  running = true;
+  cx = canvas.width / 2;
+  cy = canvas.height / 2;
+
+  updateHUD();
+  document.getElementById("timerBar").style.width = "100%";
+
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("touchmove", onTouch, { passive: true });
+  window.addEventListener("touchstart", onTouch, { passive: true });
+
+  spawnId = setInterval(function() {
+    if (!running) { clearInterval(spawnId); return; }
+    spawnClient(canvas);
+    if (timeLeft < 15) spawnClient(canvas);
+  }, 650);
+
+  timerId = setInterval(function() {
+    timeLeft--;
+    document.getElementById("hTime").textContent = timeLeft;
+    document.getElementById("timerBar").style.width = (timeLeft / 30 * 100) + "%";
+    if (timeLeft <= 0) endGame();
+  }, 1000);
+
+  var ctx = canvas.getContext("2d");
+  function loop() {
+    if (!running) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBg(ctx, canvas);
+    drawFunnel(ctx);
+    tickClients(ctx, canvas);
+    rafId = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function onMove(e) { cx = e.clientX; cy = e.clientY; }
+function onTouch(e) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+
+/* ====== BG ====== */
+function drawBg(ctx, canvas) {
+  ctx.strokeStyle = "rgba(255,255,255,0.025)";
+  ctx.lineWidth = 1;
+  for (var x = 0; x < canvas.width; x += 56) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (var y = 0; y < canvas.height; y += 56) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+}
+
+/* ====== FUNNEL ====== */
+function drawFunnel(ctx) {
+  var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, CATCH_R);
+  g.addColorStop(0, "rgba(0,170,255,0.2)");
+  g.addColorStop(1, "rgba(0,170,255,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(cx, cy, CATCH_R, 0, Math.PI * 2); ctx.fill();
+
+  ctx.strokeStyle = "rgba(0,170,255,0.55)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.arc(cx, cy, CATCH_R, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.font = "38px serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = "rgba(0,170,255,0.6)";
+  ctx.fillText("🔽", cx, cy);
+  ctx.shadowBlur = 0;
+}
+
+/* ====== SPAWN ====== */
+function spawnClient(canvas) {
+  var n = NICHES[niche];
+  var isTarget = Math.random() > 0.38;
+  var pool = isTarget ? n.targets : n.junk;
+  var emoji = pool[Math.floor(Math.random() * pool.length)];
+  var speed = 2.0 + (30 - timeLeft) * 0.08 + Math.random() * 1.2;
+  clients.push({
+    x: 50 + Math.random() * (canvas.width - 100),
+    y: -50,
+    emoji: emoji,
+    isTarget: isTarget,
+    speed: speed,
+    size: 46 + Math.random() * 10,
+    drift: (Math.random() - 0.5) * 0.7,
+    alpha: 1,
+    state: "alive",
+    tick: 0
+  });
+}
+
+/* ====== TICK & DRAW ====== */
+function tickClients(ctx, canvas) {
+  var next = [];
+  for (var i = 0; i < clients.length; i++) {
+    var c = clients[i];
+    c.tick++;
+
+    if (c.state === "caught") {
+      c.y -= 5; c.alpha -= 0.07;
+      if (c.alpha > 0) { drawClient(ctx, c); next.push(c); }
+      continue;
+    }
+
+    c.y += c.speed;
+    c.x += c.drift;
+
+    var dx = c.x - cx;
+    var dy = c.y - cy;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < CATCH_R) {
+      c.state = "caught";
+      if (c.isTarget) {
+        combo++;
+        var pts = (combo >= 3) ? 2 : 1;
+        score += pts;
+        caught++;
+        if (combo === 3) showCombo("🔥 КОМБО x2!");
+        if (combo >= 5) showCombo("⚡ ОГОНЬ!");
+        spawnFx(c.x, c.y, "+" + pts, "#00D46A");
+      } else {
+        combo = 0;
+        missed++;
+        score = Math.max(0, score - 1);
+        redFlash();
+        spawnFx(c.x, c.y, "💸", "#FF3B30");
+      }
+      updateHUD();
+      next.push(c);
+      continue;
+    }
+
+    if (c.y > canvas.height + 40) {
+      if (c.isTarget) { missed++; combo = 0; updateHUD(); }
+      continue;
+    }
+
+    drawClient(ctx, c);
+    next.push(c);
+  }
+  clients = next;
+}
+
+function drawClient(ctx, c) {
+  ctx.save();
+  ctx.globalAlpha = c.alpha;
+
+  var pulse = Math.sin(c.tick * 0.12) * 0.4 + 0.6;
+  var glowColor  = c.isTarget ? "rgba(0,212,106,0.9)"  : "rgba(255,59,48,0.9)";
+  var fillColor  = c.isTarget ? "rgba(0,212,106,0.35)" : "rgba(255,59,48,0.3)";
+  var ringColor  = c.isTarget ? ("rgba(0,212,106," + (0.75 * pulse) + ")") : ("rgba(255,59,48," + (0.75 * pulse) + ")");
+  var r = c.size / 2 + 10;
+
+  if (c.state === "alive") {
+    // outer glow
+    ctx.shadowBlur = 20 * pulse;
+    ctx.shadowColor = glowColor;
+    ctx.strokeStyle = ringColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
+
+    // fill bubble
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = fillColor;
+    ctx.beginPath(); ctx.arc(c.x, c.y, r - 2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // emoji with glow
+  ctx.shadowBlur = 18;
+  ctx.shadowColor = glowColor;
+  ctx.font = c.size + "px serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(c.emoji, c.x, c.y);
+
+  ctx.restore();
+}
+
+/* ====== HUD ====== */
+function updateHUD() {
+  document.getElementById("hScore").textContent = score;
+  document.getElementById("hMiss").textContent  = missed;
+}
+
+/* ====== FX ====== */
+function spawnFx(x, y, text, color) {
+  var el = document.createElement("div");
+  el.className = "fx";
+  el.textContent = text;
+  el.style.left = x + "px";
+  el.style.top  = y + "px";
+  el.style.color = color;
+  document.body.appendChild(el);
+  setTimeout(function() { el.remove(); }, 750);
+}
+
+function showCombo(text) {
+  var el = document.createElement("div");
+  el.className = "combo-pop";
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(function() { el.remove(); }, 950);
+}
+
+function redFlash() {
+  var el = document.createElement("div");
+  el.className = "flash";
+  el.style.background = "rgba(255,59,48,0.18)";
+  document.body.appendChild(el);
+  setTimeout(function() { el.remove(); }, 380);
+}
+
+/* ====== END ====== */
+function endGame() {
+  running = false;
+  clearInterval(timerId);
+  clearInterval(spawnId);
+  cancelAnimationFrame(rafId);
+  window.removeEventListener("mousemove", onMove);
+  window.removeEventListener("touchmove", onTouch);
+
+  var gs = document.getElementById("gameScreen");
+  gs.classList.remove("active");
+  gs.style.display = "none";
+
+  showResult();
+}
+
+function showResult() {
+  var total = caught + missed;
+  var pct   = total > 0 ? caught / total : 0;
+  var n = NICHES[niche];
+  var b = BENCHMARKS[niche];
+
+  var emoji, title, key;
+  if (pct >= 0.65)      { emoji = "🏆"; title = "Отличный результат!";         key = "high"; }
+  else if (pct >= 0.35) { emoji = "⚡"; title = "Неплохо — есть куда расти";   key = "medium"; }
+  else                  { emoji = "💡"; title = "Нецелевой трафик слил бюджет"; key = "low"; }
+
+  document.getElementById("rEmoji").textContent  = emoji;
+  document.getElementById("rTitle").textContent  = title;
+  document.getElementById("rCaught").textContent = caught;
+  document.getElementById("rScore").textContent  = score;
+  document.getElementById("rMissed").textContent = missed;
+  document.getElementById("rInsight").textContent = INSIGHTS[key];
+
+  document.getElementById("bTitle").textContent  = "📊 Ваша ниша: " + n.label;
+  document.getElementById("bComp").textContent   = b.comp;
+  document.getElementById("bCPL").textContent    = b.cpl;
+  document.getElementById("bBudget").textContent = b.budget;
+  document.getElementById("bNote").textContent   = b.note;
+
+  document.getElementById("resultScreen").classList.add("active");
+}
+
+/* ====== PROMO ====== */
+function copyPromo() {
+  var code = "ПРЕДПРИНИМАТЕЛЬ26";
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(code).catch(function() {});
+  }
+  var btn = document.getElementById("copyBtn");
+  btn.textContent = "✓ Скопировано";
+  btn.classList.add("copied");
+  setTimeout(function() {
+    btn.textContent = "Скопировать";
+    btn.classList.remove("copied");
+  }, 2500);
+}
+
+/* ====== RESTART ====== */
+function doRestart() {
+  document.getElementById("resultScreen").classList.remove("active");
+  clients = [];
+  doCountdown();
+}
+
+window.addEventListener("resize", function() {
+  if (running) {
+    var c = document.getElementById("canvas");
+    c.width  = window.innerWidth;
+    c.height = window.innerHeight;
+  }
+});
+</script>
+</body>
+</html>
